@@ -2,35 +2,29 @@
  * QuizEngine: クイズのロジック（問題生成、正誤判定）を管理します。
  */
 class QuizEngine {
-  constructor(data, questionCount = 10) {
-    this.allData = data;
-    // データが10件未満の場合（現状は5件）に対応するため、少ない方を問題数とする
-    this.questionCount = Math.min(questionCount, data.length);
+  constructor(mode = 'feature', questionCount = 10) {
+    this.mode = mode;
+    this.allData = (mode === 'ntt') ? nttOffices : municipalitiesData;
+    this.questionCount = Math.min(questionCount, this.allData.length);
     
     this.questions = [];
     this.currentIndex = 0;
     this.score = 0;
-    this.newlyCleared = []; // 今回のプレイで新しくクリアした自治体
+    this.newlyCleared = [];
   }
 
   generateQuestions() {
-    // 問題をランダムに生成
     const shuffled = [...this.allData].sort(() => Math.random() - 0.5);
     const targetData = shuffled.slice(0, this.questionCount);
 
-    this.questions = targetData.map(correctMuni => {
-      // 正解以外の自治体をフィルタリング
-      const others = this.allData.filter(m => m.id !== correctMuni.id);
+    this.questions = targetData.map(correctItem => {
+      const others = this.allData.filter(m => m.id !== correctItem.id);
       const shuffledOthers = [...others].sort(() => Math.random() - 0.5);
-      
-      // ダミーの選択肢を最大3つ選出
       const dummys = shuffledOthers.slice(0, 3);
-      
-      // 正解とダミーを混ぜて選択肢を生成
-      const options = [correctMuni, ...dummys].sort(() => Math.random() - 0.5);
+      const options = [correctItem, ...dummys].sort(() => Math.random() - 0.5);
       
       return {
-        correct: correctMuni,
+        correct: correctItem,
         options: options
       };
     });
@@ -54,7 +48,7 @@ class QuizEngine {
     
     return {
       isCorrect,
-      correctMuni: currentQ.correct
+      correctItem: currentQ.correct
     };
   }
 

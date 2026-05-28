@@ -3,8 +3,8 @@
  * localStorageを用いてクリア状況を保存・復元します。
  */
 class ProgressTracker {
-  constructor(totalCount = 59) {
-    this.storageKey = 'fukushimaMasterProgress';
+  constructor(totalCount = 59, storageKey = 'fukushimaMasterProgress') {
+    this.storageKey = storageKey;
     this.totalCount = totalCount;
     // 初期化時に保存されたデータを読み込む
     this.clearedIds = this.loadProgress();
@@ -99,4 +99,6 @@ class ProgressTracker {
 }
 
 // 外部から利用できるようグローバル変数として定義
-const progressTracker = new ProgressTracker(59);
+const progressTracker = new ProgressTracker(59, 'fukushimaMasterProgress');
+// NTT用（全201局）
+const nttProgressTracker = new ProgressTracker(201, 'nttMasterProgress');

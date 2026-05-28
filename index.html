@@ -23,20 +23,29 @@
 
       <div class="progress-card glass-panel mt-8 fade-in-up" style="animation-delay: 0.1s;">
         <h2>現在の進捗</h2>
-        <div class="progress-stats mt-4">
-          <span id="progress-count" class="text-accent text-3xl font-bold">0 / 59</span>
-          <span class="ml-2">自治体クリア！</span>
-          <span id="progress-percent" class="percent ml-auto font-bold">0%</span>
+        <div class="progress-stats mt-4 flex-between">
+          <div>
+            <div class="text-sm text-muted">🏢 自治体</div>
+            <span id="progress-count" class="text-accent text-2xl font-bold">0 / 59</span>
+            <span id="progress-percent" class="percent ml-2 font-bold text-sm">0%</span>
+          </div>
+          <div class="text-right">
+            <div class="text-sm text-muted">☎️ NTT収容局</div>
+            <span id="ntt-progress-count" class="text-primary text-2xl font-bold">0 / 201</span>
+            <span id="ntt-progress-percent" class="percent ml-2 font-bold text-sm">0%</span>
+          </div>
         </div>
-        <div class="progress-bar-container mt-4">
-          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+        <div class="progress-bar-container mt-4" style="height: 12px; display: flex; gap: 4px; background: rgba(0,0,0,0.3);">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%; border-radius: 6px;"></div>
+          <div id="ntt-progress-bar-fill" class="progress-bar-fill" style="width: 0%; background: var(--color-primary); border-radius: 6px;"></div>
         </div>
       </div>
 
       <div class="menu-actions mt-12 flex-column fade-in-up" style="animation-delay: 0.2s;">
         <button id="btn-start-feature" class="btn btn-primary btn-lg pulse-hover">特徴当てクイズ開始 (Feature Mode)</button>
         <button id="btn-start-map" class="btn btn-secondary btn-lg mt-4 pulse-hover">位置当てクイズ開始 (Map Mode)</button>
-        <button id="btn-collection" class="btn btn-outline btn-lg mt-4">自治体コレクション（図鑑）</button>
+        <button id="btn-start-ntt" class="btn btn-warning btn-lg mt-4 pulse-hover">NTT収容局 場所当てクイズ (NTT Mode)</button>
+        <button id="btn-collection" class="btn btn-outline btn-lg mt-4">全データ一覧</button>
       </div>
     </section>
 
@@ -158,10 +167,14 @@
     <section id="collection-screen" class="screen hidden">
       <header class="collection-header glass-panel mb-8">
         <div class="flex-between align-center">
-          <h1 class="text-gradient">自治体コレクション</h1>
+          <h1 class="text-gradient">全データ一覧</h1>
           <button id="btn-col-to-title" class="btn-icon">✕ 戻る</button>
         </div>
-        <div class="collection-tabs mt-6">
+        <div class="collection-mode-tabs mt-4 flex-center gap-4" style="justify-content: center; margin-top: 1rem; margin-bottom: 1rem;">
+          <button class="btn btn-primary mode-tab-btn active" data-mode="municipalities">🏢 自治体図鑑</button>
+          <button class="btn btn-secondary mode-tab-btn" data-mode="ntt">☎️ NTT収容局</button>
+        </div>
+        <div id="muni-area-tabs" class="collection-tabs mt-6">
           <button class="tab-btn active" data-area="all">すべて</button>
           <button class="tab-btn" data-area="中通り">中通り</button>
           <button class="tab-btn" data-area="会津">会津</button>
@@ -186,6 +199,9 @@
           <ul id="collection-list" class="collection-list">
             <!-- リストアイテムがJSで挿入される -->
           </ul>
+          <ul id="collection-list-ntt" class="collection-list hidden">
+            <!-- NTTリストアイテムがJSで挿入される -->
+          </ul>
         </div>
       </div>
       
@@ -194,8 +210,25 @@
       </div>
     </section>
 
+    <!-- モーダルポップアップ (詳細表示用) -->
+    <div id="details-modal" class="modal-overlay hidden">
+      <div class="modal-content glass-panel bounce-in">
+        <button id="btn-close-modal" class="btn-close-modal">✕</button>
+        <div class="modal-header">
+          <h2 id="modal-title" class="text-2xl font-bold mb-2"></h2>
+          <div id="modal-kana" class="text-muted text-sm mb-4"></div>
+        </div>
+        <div class="modal-body">
+          <div id="modal-features" class="feature-list-container">
+            <!-- 特徴リスト -->
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
   <script src="data/municipalities.js"></script>
+  <script src="data/ntt_offices.js"></script>
   <script src="js/progress.js"></script>
   <script src="js/quiz.js"></script>
   <script src="js/app.js"></script>

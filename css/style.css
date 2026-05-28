@@ -294,6 +294,29 @@ body {
 }
 
 /* --- コレクション (図鑑) 要素 --- */
+.collection-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.mode-tab-btn {
+  font-size: 1.1rem;
+  padding: 0.75rem 2rem;
+  border-radius: 30px;
+  border: 2px solid transparent;
+  transition: all var(--transition-normal);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+.mode-tab-btn.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 15px rgba(255, 128, 0, 0.4);
+  transform: scale(1.05);
+}
+
 .collection-tabs {
   display: flex;
   gap: 8px;
@@ -415,7 +438,20 @@ body {
   opacity: 0.9;
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* 少しポップなアニメーション */
 }
-.map-name-text.text-hover {
+.ntt-name-text {
+  fill: #ffffff;
+  stroke: rgba(0, 0, 0, 0.9);
+  stroke-width: 0.6px;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
+  font-size: 5px; /* 多くても重なりにくいように小さく */
+  text-anchor: middle;
+  dominant-baseline: bottom;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: all 0.2s;
+}
+.map-name-text.text-hover, .ntt-name-text.text-hover {
   font-size: 22px; /* ホバー・タップ時は巨大化 */
   fill: #facc15; /* 黄色にして目立たせる */
   stroke-width: 1.5px;
@@ -423,6 +459,24 @@ body {
 }
 .collection-map-pane .map-area {
   transition: filter 0.2s;
+}
+
+/* NTT Dots */
+.ntt-dot {
+  fill: #3b82f6;
+  stroke: #fff;
+  stroke-width: 1px;
+}
+.ntt-target {
+  fill: #ef4444;
+  stroke: #fef08a;
+  stroke-width: 2px;
+  animation: nttPulse 1.5s infinite;
+}
+@keyframes nttPulse {
+  0% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5)); }
+  50% { filter: drop-shadow(0 0 16px rgba(250, 204, 21, 1)); }
+  100% { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5)); }
 }
 .highlight-active {
   fill: #facc15 !important;
@@ -434,4 +488,79 @@ body {
   0% { filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.5)); }
   50% { filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.9)); }
   100% { filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.5)); }
+}
+
+/* --- New Added Styles --- */
+.feature-item {
+  display: inline-block;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin: 2px 4px 2px 0;
+  border: 1px solid var(--border-color);
+}
+.ntt-collection-item .collection-item-name {
+  font-weight: bold;
+}
+
+.cleared-dot {
+  fill: var(--color-primary);
+  stroke: #fff;
+  stroke-width: 1px;
+  filter: drop-shadow(0 0 8px var(--color-primary));
+}
+
+.uncleared-dot {
+  fill: #3b82f6;
+  stroke: #fff;
+  stroke-width: 1px;
+  opacity: 0.8;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 500px;
+  background: var(--bg-card);
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.btn-close-modal {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.btn-close-modal:hover {
+  color: var(--text-primary);
+}
+.bounce-in {
+  animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes bounceIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
