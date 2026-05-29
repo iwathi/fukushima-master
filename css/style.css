@@ -266,7 +266,12 @@ body {
 }
 @media (max-width: 600px) {
   .options-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .option-btn {
+    padding: 16px 8px;
+    font-size: 1.1rem;
   }
 }
 

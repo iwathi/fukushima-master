@@ -98,7 +98,16 @@ class ProgressTracker {
   }
 }
 
-// 外部から利用できるようグローバル変数として定義
-const progressTracker = new ProgressTracker(59, 'fukushimaMasterProgress');
-// NTT用（全201局）
-const nttProgressTracker = new ProgressTracker(201, 'nttMasterProgress');
+// 各県・各モード用のトラッカーを初期化
+const fukushimaMapTracker = new ProgressTracker(59, 'fukushimaMapProgress');
+const fukushimaFeatureTracker = new ProgressTracker(59, 'fukushimaFeatureProgress');
+const nttFukushimaTracker = new ProgressTracker(201, 'nttFukushimaProgress');
+
+const miyagiMapTracker = new ProgressTracker(39, 'miyagiMapProgress');
+const miyagiFeatureTracker = new ProgressTracker(39, 'miyagiFeatureProgress');
+const nttMiyagiTracker = new ProgressTracker(173, 'nttMiyagiProgress');
+
+// 現在アクティブなトラッカー（app.jsで県切替時に更新される）
+let currentMapTracker = fukushimaMapTracker;
+let currentFeatureTracker = fukushimaFeatureTracker;
+let currentNttTracker = nttFukushimaTracker;

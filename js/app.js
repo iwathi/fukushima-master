@@ -9,8 +9,10 @@ class App {
   }
 
   init() {
-    // data/municipalities.jsで定義したグローバル変数を使用
+    this.currentPrefecture = 'fukushima';
     this.municipalities = municipalitiesData;
+    this.nttOffices = this.nttOffices || window.nttOffices; // fallback if window.nttOffices is defined differently
+    if (typeof nttOffices !== 'undefined') this.nttOffices = nttOffices;
 
     this.cacheDOM();
     this.bindEvents();
@@ -53,6 +55,14 @@ class App {
   }
 
   bindEvents() {
+    // 県切り替え
+    const prefSelect = document.getElementById('prefecture-select');
+    if (prefSelect) {
+      prefSelect.addEventListener('change', (e) => {
+        this.setPrefecture(e.target.value);
+      });
+    }
+
     // タイトル画面ボタン
     document.getElementById('btn-start-feature').addEventListener('click', () => this.startQuiz('feature'));
     document.getElementById('btn-start-map').addEventListener('click', () => this.startQuiz('map'));
@@ -77,8 +87,9 @@ class App {
     document.getElementById('btn-col-to-title').addEventListener('click', () => this.switchScreen('title'));
     document.getElementById('btn-reset-data').addEventListener('click', () => {
       if(confirm('本当に進捗データをすべてリセットしますか？この操作は元に戻せません。')) {
-        progressTracker.resetProgress();
-        nttProgressTracker.resetProgress();
+        currentMapTracker.resetProgress();
+        currentFeatureTracker.resetProgress();
+        currentNttTracker.resetProgress();
         this.updateTitleProgress();
         this.renderCollection();
         alert('データをリセットしました。');
@@ -114,6 +125,72 @@ class App {
     }
   }
 
+  setPrefecture(pref) {
+    this.currentPrefecture = pref;
+    if (pref === 'fukushima') {
+      currentMapTracker = fukushimaMapTracker;
+      currentFeatureTracker = fukushimaFeatureTracker;
+      currentNttTracker = nttFukushimaTracker;
+      this.municipalities = typeof municipalitiesData !== 'undefined' ? municipalitiesData : [];
+      this.nttOffices = typeof nttOffices !== 'undefined' ? nttOffices : [];
+      const svgM = document.getElementById('miyagi-svg');
+      const svgF = document.getElementById('fukushima-svg');
+      if (svgM) svgM.style.display = 'none';
+      if (svgF) svgF.style.display = 'block';
+      const title = document.getElementById('app-title');
+      if (title) title.textContent = '福島県自治体マスター';
+      const desc = document.getElementById('app-subtitle');
+      if (desc) desc.textContent = '59市町村の特徴を学ぼう！';
+      currentMapTracker.totalCount = 59;
+      currentFeatureTracker.totalCount = 59;
+      currentNttTracker.totalCount = 201;
+      
+      // エリアボタンの切り替え
+      document.querySelectorAll('.fukushima-area-btn').forEach(btn => btn.style.display = 'inline-block');
+      document.querySelectorAll('.miyagi-area-btn').forEach(btn => btn.style.display = 'none');
+      
+      // コレクションマップのキャッシュをクリア
+      const mapContainer = document.getElementById('collection-map-container');
+      if (mapContainer) mapContainer.innerHTML = '';
+    } else {
+      currentMapTracker = miyagiMapTracker;
+      currentFeatureTracker = miyagiFeatureTracker;
+      currentNttTracker = nttMiyagiTracker;
+      this.municipalities = typeof miyagiMunicipalities !== 'undefined' ? miyagiMunicipalities : [];
+      this.nttOffices = typeof miyagiOffices !== 'undefined' ? miyagiOffices : [];
+      const svgM = document.getElementById('miyagi-svg');
+      const svgF = document.getElementById('fukushima-svg');
+      if (svgM) svgM.style.display = 'block';
+      if (svgF) svgF.style.display = 'none';
+      const title = document.getElementById('app-title');
+      if (title) title.textContent = '宮城県自治体マスター';
+      const desc = document.getElementById('app-subtitle');
+      if (desc) desc.textContent = `${this.municipalities.length}市町村の特徴を学ぼう！`;
+      currentMapTracker.totalCount = this.municipalities.length;
+      currentFeatureTracker.totalCount = this.municipalities.length;
+      currentNttTracker.totalCount = this.nttOffices.length;
+      
+      // エリアボタンの切り替え
+      document.querySelectorAll('.fukushima-area-btn').forEach(btn => btn.style.display = 'none');
+      document.querySelectorAll('.miyagi-area-btn').forEach(btn => btn.style.display = 'inline-block');
+      
+      // コレクションマップのキャッシュをクリア
+      const mapContainer = document.getElementById('collection-map-container');
+      if (mapContainer) mapContainer.innerHTML = '';
+    }
+    
+    // タブの「すべて」をアクティブに戻す
+    this.tabBtns.forEach(btn => {
+      if (btn.dataset.area === 'all') btn.classList.add('active');
+      else btn.classList.remove('active');
+    });
+    // reset collection map
+    const mapContainer = document.getElementById('collection-map-container');
+    if (mapContainer) mapContainer.innerHTML = '';
+    
+    this.updateTitleProgress();
+  }
+
   // SPAの画面切り替え処理
   switchScreen(screenName) {
     Object.values(this.screens).forEach(screen => {
@@ -130,19 +207,24 @@ class App {
 
   // 進捗状況の表示更新
   updateTitleProgress() {
-    // 自治体
-    const count = progressTracker.getClearedCount();
-    const total = progressTracker.totalCount; // 59
-    const percent = progressTracker.getProgressPercentage();
+    // 自治体 (位置と特徴の両方をクリアしていればカウント)
+    let count = 0;
+    this.municipalities.forEach(city => {
+      if (currentMapTracker.isCleared(city.id) && currentFeatureTracker.isCleared(city.id)) {
+        count++;
+      }
+    });
+    const total = this.municipalities.length;
+    const percent = total === 0 ? 0 : Math.floor((count / total) * 100);
     
     this.elProgressCount.textContent = `${count} / ${total}`;
     this.elProgressPercent.textContent = `${percent}%`;
     this.elProgressBarFill.style.width = `${percent}%`;
 
     // NTT
-    const nttCount = nttProgressTracker.getClearedCount();
-    const nttTotal = nttProgressTracker.totalCount; // 201
-    const nttPercent = nttProgressTracker.getProgressPercentage();
+    const nttCount = currentNttTracker.getClearedCount();
+    const nttTotal = currentNttTracker.totalCount;
+    const nttPercent = currentNttTracker.getProgressPercentage();
     
     const elNttCount = document.getElementById('ntt-progress-count');
     const elNttPercent = document.getElementById('ntt-progress-percent');
@@ -196,48 +278,46 @@ class App {
       elMapContainer.classList.remove('hidden');
       elQuestionText.textContent = 'この赤く塗られた市町村はどこ？';
       
-      const svg = elMapContainer.querySelector('svg');
+      const svgId = this.currentPrefecture === 'fukushima' ? 'fukushima-svg' : 'miyagi-svg';
+      const svg = document.getElementById(svgId);
+      
+      // Hide all svgs in container and show the right one
+      const svgs = elMapContainer.querySelectorAll('svg');
+      svgs.forEach(s => s.style.display = 'none');
+      if (svg) svg.style.display = 'block';
       const allAreas = svg.querySelectorAll('.map-area');
       allAreas.forEach(area => area.classList.remove('highlight-active'));
       const oldDots = svg.querySelectorAll('.ntt-dot');
       oldDots.forEach(dot => dot.remove());
+      // 地図クイズでは市町村名テキストを非表示
+      svg.querySelectorAll('.map-name-text').forEach(t => t.style.display = 'none');
       
       const targetArea = svg.getElementById(q.correct.id);
       if (targetArea) {
         targetArea.classList.add('highlight-active');
-        const bbox = targetArea.getBBox();
-        const viewBox = svg.viewBox.baseVal;
-        const scale = 2.5;
-        const centerX = bbox.x + bbox.width / 2;
-        const centerY = bbox.y + bbox.height / 2;
-        const tx = (viewBox.width / 2) - (centerX * scale);
-        const ty = (viewBox.height / 2) - (centerY * scale);
-        const g = svg.querySelector('#map-group');
-        if (g) {
-          g.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
-          g.setAttribute('transform', `translate(${tx}, ${ty}) scale(${scale})`);
-        }
       }
     } else if (this.currentMode === 'ntt') {
       elFeatureList.classList.add('hidden');
       elMapContainer.classList.remove('hidden');
       elQuestionText.textContent = 'この光っているNTT収容局はどこ？';
       
-      const svg = elMapContainer.querySelector('svg');
+      const svgId = this.currentPrefecture === 'fukushima' ? 'fukushima-svg' : 'miyagi-svg';
+      const svg = document.getElementById(svgId);
+      
+      // Hide all svgs in container and show the right one
+      const svgs = elMapContainer.querySelectorAll('svg');
+      svgs.forEach(s => s.style.display = 'none');
+      if (svg) svg.style.display = 'block';
       const allAreas = svg.querySelectorAll('.map-area');
       allAreas.forEach(area => area.classList.remove('highlight-active'));
       const oldDots = svg.querySelectorAll('.ntt-dot');
       oldDots.forEach(dot => dot.remove());
-
-      const g = svg.querySelector('#map-group');
-      if (g) {
-        g.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        g.setAttribute('transform', ''); // ズームなし
-      }
+      // NTTクイズでは市町村名テキストを表示
+      svg.querySelectorAll('.map-name-text').forEach(t => t.style.display = '');
 
       // Draw NTT dots
       const NS = "http://www.w3.org/2000/svg";
-      nttOffices.forEach(office => {
+      this.nttOffices.forEach(office => {
         const circle = document.createElementNS(NS, 'circle');
         circle.setAttribute('cx', office.x);
         circle.setAttribute('cy', office.y);
@@ -260,8 +340,8 @@ class App {
       const btn = document.createElement('button');
       btn.className = 'option-btn';
       btn.dataset.id = opt.id;
-      const kanaHtml = opt.kana ? `<span style="font-size: 0.8rem; display: block; color: var(--text-secondary); margin-top: 4px;">${opt.kana}</span>` : '';
-      btn.innerHTML = `${opt.name} ${kanaHtml}`;
+      const kanaHtml = opt.kana ? `<span style="font-size: 0.85rem; color: var(--text-secondary);">（${opt.kana}）</span>` : '';
+      btn.innerHTML = `${opt.name}${kanaHtml}`;
       btn.addEventListener('click', () => this.handleAnswerSubmit(opt.id, btn));
       this.elOptionsGrid.appendChild(btn);
     });
@@ -276,11 +356,14 @@ class App {
     const { isCorrect, correctItem } = this.quizEngine.submitAnswer(selectedId);
     
     if (isCorrect) {
-      if (this.currentMode !== 'ntt') {
-        const newlyCleared = progressTracker.markAsCleared(correctItem.id);
+      if (this.currentMode === 'map') {
+        const newlyCleared = currentMapTracker.markAsCleared(correctItem.id);
+        if (newlyCleared) this.quizEngine.newlyCleared.push(correctItem);
+      } else if (this.currentMode === 'feature') {
+        const newlyCleared = currentFeatureTracker.markAsCleared(correctItem.id);
         if (newlyCleared) this.quizEngine.newlyCleared.push(correctItem);
       } else {
-        const newlyCleared = nttProgressTracker.markAsCleared(correctItem.id);
+        const newlyCleared = currentNttTracker.markAsCleared(correctItem.id);
         if (newlyCleared) this.quizEngine.newlyCleared.push(correctItem);
       }
       buttonEl.classList.add('correct');
@@ -376,11 +459,14 @@ class App {
     // 進捗テキスト
     let clearedCount, totalCount;
     if (this.collectionMode === 'ntt') {
-      clearedCount = nttProgressTracker.getClearedCount();
-      totalCount = nttOffices.length; // 201
+      clearedCount = currentNttTracker.getClearedCount();
+      totalCount = this.nttOffices.length;
     } else {
-      clearedCount = progressTracker.getClearedCount();
-      totalCount = this.municipalities.length; // 59
+      clearedCount = 0;
+      this.municipalities.forEach(city => {
+        if (currentMapTracker.isCleared(city.id) && currentFeatureTracker.isCleared(city.id)) clearedCount++;
+      });
+      totalCount = this.municipalities.length;
     }
     document.getElementById('collection-progress-text').textContent = `${clearedCount} / ${totalCount}`;
 
@@ -415,7 +501,9 @@ class App {
       // ＝＝＝ 自治体モードの描画 ＝＝＝
       this.elCollectionListMuni.innerHTML = '';
       this.municipalities.forEach(city => {
-        const isCleared = progressTracker.isCleared(city.id);
+        const isMapCleared = currentMapTracker.isCleared(city.id);
+        const isFeatureCleared = currentFeatureTracker.isCleared(city.id);
+        const isCleared = isMapCleared && isFeatureCleared;
         
         if (isCleared) {
           const area = svgClone.getElementById(`col-map-${city.id}`);
@@ -433,11 +521,19 @@ class App {
         const statusIcon = isCleared ? '<span class="status-cleared">✅</span>' : '<span class="status-locked" style="color:var(--text-muted);">🔒</span>';
         const nameColor = isCleared ? '' : 'color: var(--text-muted);';
 
+        const mapBadgeHtml = `<span style="padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: ${isMapCleared ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.1)'}; color: ${isMapCleared ? '#4ade80' : '#888'};">📍 位置</span>`;
+        const featBadgeHtml = `<span style="padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: ${isFeatureCleared ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.1)'}; color: ${isFeatureCleared ? '#4ade80' : '#888'};">💡 特徴</span>`;
+
         header.innerHTML = `
-          <div class="collection-item-name" style="${nameColor}">
-            ${statusIcon} ${city.name}
+          <div class="flex-between w-full align-center">
+            <div class="collection-item-name" style="${nameColor}">
+              ${statusIcon} ${city.name} ${city.kana ? `<span style="font-size: 0.8rem; color: var(--text-muted);">（${city.kana}）</span>` : ''}
+            </div>
+            <div style="display: flex; gap: 4px;">
+              ${mapBadgeHtml}
+              ${featBadgeHtml}
+            </div>
           </div>
-          <div class="text-muted text-xs">▼ 概要を見る</div>
         `;
         
         // ポップアップを開く
@@ -451,8 +547,8 @@ class App {
     } else {
       // ＝＝＝ NTTモードの描画 ＝＝＝
       this.elCollectionListNtt.innerHTML = '';
-      nttOffices.forEach(office => {
-        const isCleared = nttProgressTracker.isCleared(office.id);
+      this.nttOffices.forEach(office => {
+        const isCleared = currentNttTracker.isCleared(office.id);
         
         const dot = svgClone.getElementById(`col-dot-${office.id}`);
         if (dot) {
@@ -479,7 +575,7 @@ class App {
 
         header.innerHTML = `
           <div class="collection-item-name" style="${nameColor}">
-            ${statusIcon} ${office.name}局
+            ${statusIcon} ${office.name}局 ${office.kana ? `<span style="font-size: 0.8rem; color: var(--text-muted);">（${office.kana}）</span>` : ''}
           </div>
           <div class="text-muted text-xs">▼ 確認する</div>
         `;
@@ -537,12 +633,19 @@ class App {
 
   generateCollectionMap(container) {
     // 問題画面のSVGをクローン
-    const originalSvg = document.querySelector('.fukushima-map');
+    const originalSvg = this.currentPrefecture === 'fukushima' ? document.getElementById('fukushima-svg') : document.getElementById('miyagi-svg');
     const svgClone = originalSvg.cloneNode(true);
+    svgClone.style.display = 'block';
     
     // クローンの調整
     svgClone.classList.remove('real-map');
     svgClone.classList.add('collection-map-svg');
+    
+    // 既存のテキストラベルのIDをコレクション用に変更
+    svgClone.querySelectorAll('.map-name-text').forEach(t => {
+      const origId = t.id.replace('text_', ''); // ex: 'text_miyagi_xxx' -> 'miyagi_xxx'
+      t.id = `col-text-${origId}`;
+    });
 
     // IDの重複を避けるため、クローンのIDを変更
     const paths = svgClone.querySelectorAll('.map-area');
@@ -578,7 +681,7 @@ class App {
 
     // NTTのドットも追加しておく
     const NS = "http://www.w3.org/2000/svg";
-    nttOffices.forEach(office => {
+    this.nttOffices.forEach(office => {
       const circle = document.createElementNS(NS, 'circle');
       circle.setAttribute('cx', office.x);
       circle.setAttribute('cy', office.y);
@@ -603,33 +706,35 @@ class App {
 
     container.appendChild(svgClone);
 
-    // テキスト要素の配置
-    this.municipalities.forEach(city => {
-      const path = svgClone.getElementById(`col-map-${city.id}`);
-      if (path) {
-        try {
-          const bbox = path.getBBox();
-          const cx = bbox.x + bbox.width / 2;
-          const cy = bbox.y + bbox.height / 2;
-          
-          const textEl = document.createElementNS(NS, 'text');
-          textEl.setAttribute('x', cx);
-          textEl.setAttribute('y', cy);
-          textEl.setAttribute('class', 'map-name-text');
-          textEl.setAttribute('id', `col-text-${city.id}`);
-          
-          textEl.textContent = city.name.replace(/(市|町|村)$/, '');
-          
-          svgClone.appendChild(textEl);
-        } catch(e) {
-          console.log('Error calculating bbox for', city.id);
+    // テキスト要素の配置（福島のみ動的生成）
+    if (this.currentPrefecture === 'fukushima') {
+      this.municipalities.forEach(city => {
+        const path = svgClone.getElementById(`col-map-${city.id}`);
+        if (path) {
+          try {
+            const bbox = path.getBBox();
+            const cx = bbox.x + bbox.width / 2;
+            const cy = bbox.y + bbox.height / 2;
+            
+            const textEl = document.createElementNS(NS, 'text');
+            textEl.setAttribute('x', cx);
+            textEl.setAttribute('y', cy);
+            textEl.setAttribute('class', 'map-name-text');
+            textEl.setAttribute('id', `col-text-${city.id}`);
+            
+            textEl.textContent = city.name.replace(/(市|町|村)$/, '');
+            
+            svgClone.appendChild(textEl);
+          } catch(e) {
+            console.log('Error calculating bbox for', city.id);
+          }
         }
-      }
-    });
+      });
+    }
   }
 }
 
 // DOM読み込み完了時にアプリを起動
 window.addEventListener('DOMContentLoaded', () => {
-  new App();
+  window.app = new App();
 });

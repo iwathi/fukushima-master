@@ -4,7 +4,7 @@
 class QuizEngine {
   constructor(mode = 'feature', questionCount = 10) {
     this.mode = mode;
-    this.allData = (mode === 'ntt') ? nttOffices : municipalitiesData;
+    this.allData = (mode === 'ntt') ? window.app.nttOffices : window.app.municipalities;
     this.questionCount = Math.min(questionCount, this.allData.length);
     
     this.questions = [];
