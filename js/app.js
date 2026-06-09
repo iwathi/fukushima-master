@@ -92,6 +92,11 @@ class App {
         currentNttTracker.resetProgress();
         this.updateTitleProgress();
         this.renderCollection();
+        
+        this.sendGAEvent('reset_data', {
+          prefecture: this.currentPrefecture
+        });
+
         alert('データをリセットしました。');
       }
     });
@@ -241,6 +246,12 @@ class App {
     this.quizEngine = new QuizEngine(mode, 10);
     this.quizEngine.generateQuestions();
     
+    // イベント送信: クイズ開始
+    this.sendGAEvent('quiz_start', {
+      mode: mode,
+      prefecture: this.currentPrefecture
+    });
+    
     // クイズ画面のトータル問題数表示を更新
     const totalQEl = this.screens.quiz.querySelector('.question-counter');
     totalQEl.innerHTML = `第 <span id="current-q-num" class="text-accent font-bold">1</span> 問 / 全${this.quizEngine.getTotal()}問`;
@@ -355,6 +366,15 @@ class App {
 
     const { isCorrect, correctItem } = this.quizEngine.submitAnswer(selectedId);
     
+    // イベント送信: 回答結果
+    this.sendGAEvent('quiz_answer', {
+      mode: this.currentMode,
+      prefecture: this.currentPrefecture,
+      question_id: correctItem.id,
+      question_name: correctItem.name,
+      is_correct: isCorrect
+    });
+    
     if (isCorrect) {
       if (this.currentMode === 'map') {
         const newlyCleared = currentMapTracker.markAsCleared(correctItem.id);
@@ -413,6 +433,16 @@ class App {
   showResult() {
     const score = this.quizEngine.getScore();
     const total = this.quizEngine.getTotal();
+    const newClears = this.quizEngine.newlyCleared;
+
+    // イベント送信: クイズ完了
+    this.sendGAEvent('quiz_complete', {
+      mode: this.currentMode,
+      prefecture: this.currentPrefecture,
+      score: score,
+      total: total,
+      new_clears_count: newClears.length
+    });
     
     // スコアとトータル問題数の表示を更新
     this.elFinalScore.textContent = score;
@@ -442,6 +472,11 @@ class App {
     this.tabBtns.forEach(b => b.classList.remove('active'));
     this.tabBtns[0].classList.add('active'); // 「すべて」をアクティブに
     
+    // イベント送信: コレクション画面閲覧
+    this.sendGAEvent('view_collection', {
+      prefecture: this.currentPrefecture
+    });
+
     this.renderCollection('all');
   }
 
@@ -730,6 +765,15 @@ class App {
           }
         }
       });
+    }
+  }
+
+  // Google Analytics カスタムイベント送信用ヘルパー
+  sendGAEvent(eventName, params) {
+    if (typeof gtag === 'function') {
+      gtag('event', eventName, params);
+    } else {
+      console.log(`[GA Event Mock] ${eventName}`, params);
     }
   }
 }
