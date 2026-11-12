@@ -448,7 +448,6 @@ class App {
     this.elFinalScore.textContent = score;
     this.elFinalScore.nextElementSibling.textContent = ` / ${total}点`;
 
-    const newClears = this.quizEngine.newlyCleared;
     if (newClears.length > 0) {
       this.elNewClearedSection.classList.remove('hidden');
       this.elNewClearedList.innerHTML = '';
