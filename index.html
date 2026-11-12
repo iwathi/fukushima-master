@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=9">
 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-PY7LPCZXZH"></script>
@@ -26,50 +26,83 @@
     
     <!-- ① タイトル＆進捗画面 -->
     <section id="title-screen" class="screen active">
-      <header class="glass-panel text-center fade-in-up" style="position: relative;">
-        <select id="prefecture-select" class="glass-btn" style="position: absolute; left: 1rem; top: 1rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.5rem; border-radius: 8px; font-family: inherit;">
-          <option value="fukushima" style="color: black;">福島県</option>
-          <option value="miyagi" style="color: black;">宮城県</option>
-        </select>
-        <h1 id="app-title" class="text-gradient">福島県自治体マスター</h1>
+      <header class="glass-panel text-center fade-in-up title-header">
+        <!-- 県域切り替え（セグメントボタン） -->
+        <div id="prefecture-switch" class="segmented" role="tablist" aria-label="県域の選択">
+          <button type="button" class="segmented-btn active" data-pref="fukushima" role="tab" aria-selected="true">福島県</button>
+          <button type="button" class="segmented-btn" data-pref="miyagi" role="tab" aria-selected="false">宮城県</button>
+        </div>
+        <h1 id="app-title" class="app-title text-gradient">福島県自治体マスター</h1>
         <p id="app-subtitle" class="subtitle mt-2">59市町村の特徴を学ぼう！</p>
       </header>
 
-      <div class="progress-card glass-panel mt-8 fade-in-up" style="animation-delay: 0.1s;">
-        <h2>現在の進捗</h2>
-        <div class="progress-stats mt-4 flex-between">
-          <div>
-            <div class="text-sm text-muted">🏢 自治体 <span style="font-size: 0.7rem;">※位置と特徴の両方クリアでカウント</span></div>
-            <span id="progress-count" class="text-accent text-2xl font-bold">0 / 59</span>
-            <span id="progress-percent" class="percent ml-2 font-bold text-sm">0%</span>
+      <div class="progress-card glass-panel mt-6 fade-in-up" style="animation-delay: 0.1s;">
+        <h2 class="section-title">現在の進捗</h2>
+        <div class="stat-grid mt-4">
+          <div class="stat-card">
+            <div class="stat-label">🏢 自治体</div>
+            <div class="stat-value">
+              <span id="progress-count" class="text-accent">0 / 59</span>
+              <span id="progress-percent" class="stat-percent">0%</span>
+            </div>
+            <div class="progress-bar-container mt-2">
+              <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div class="stat-breakdown mt-2">
+              <span>📍位置 <b id="map-progress-count">0/59</b></span>
+              <span>💡特徴 <b id="feature-progress-count">0/59</b></span>
+            </div>
           </div>
-          <div class="text-right">
-            <div class="text-sm text-muted">☎️ NTT収容局</div>
-            <span id="ntt-progress-count" class="text-primary text-2xl font-bold">0 / 201</span>
-            <span id="ntt-progress-percent" class="percent ml-2 font-bold text-sm">0%</span>
+          <div class="stat-card">
+            <div class="stat-label">☎️ NTT収容局</div>
+            <div class="stat-value">
+              <span id="ntt-progress-count" class="text-warning">0 / 201</span>
+              <span id="ntt-progress-percent" class="stat-percent">0%</span>
+            </div>
+            <div class="progress-bar-container mt-2">
+              <div id="ntt-progress-bar-fill" class="progress-bar-fill progress-bar-ntt" style="width: 0%;"></div>
+            </div>
+            <div class="stat-breakdown mt-2">
+              <span>※自治体は位置・特徴の両方クリアで達成</span>
+            </div>
           </div>
-        </div>
-        <div class="progress-bar-container mt-4" style="height: 12px; display: flex; gap: 4px; background: rgba(0,0,0,0.3);">
-          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%; border-radius: 6px;"></div>
-          <div id="ntt-progress-bar-fill" class="progress-bar-fill" style="width: 0%; background: var(--color-primary); border-radius: 6px;"></div>
         </div>
       </div>
 
-      <div class="menu-actions mt-12 flex-column fade-in-up" style="animation-delay: 0.2s;">
-        <button id="btn-start-feature" class="btn btn-primary btn-lg pulse-hover">特徴当てクイズ開始 (Feature Mode)</button>
-        <button id="btn-start-map" class="btn btn-secondary btn-lg mt-4 pulse-hover">位置当てクイズ開始 (Map Mode)</button>
-        <button id="btn-start-ntt" class="btn btn-warning btn-lg mt-4 pulse-hover">NTT収容局 場所当てクイズ (NTT Mode)</button>
-        <button id="btn-collection" class="btn btn-outline btn-lg mt-4">全データ一覧</button>
+      <div class="menu-actions mt-6 flex-column fade-in-up" style="animation-delay: 0.2s;">
+        <button id="btn-start-feature" class="menu-btn menu-feature">
+          <span class="menu-icon">💡</span>
+          <span class="menu-text"><span class="menu-title">特徴当てクイズ</span><span class="menu-desc">特徴から市町村を当てよう</span></span>
+          <span class="menu-arrow">›</span>
+        </button>
+        <button id="btn-start-map" class="menu-btn menu-map">
+          <span class="menu-icon">📍</span>
+          <span class="menu-text"><span class="menu-title">位置当てクイズ</span><span class="menu-desc">地図の場所から市町村を当てよう</span></span>
+          <span class="menu-arrow">›</span>
+        </button>
+        <button id="btn-start-ntt" class="menu-btn menu-ntt">
+          <span class="menu-icon">☎️</span>
+          <span class="menu-text"><span class="menu-title">NTT収容局クイズ</span><span class="menu-desc">光っている収容局を当てよう</span></span>
+          <span class="menu-arrow">›</span>
+        </button>
+        <button id="btn-collection" class="menu-btn menu-collection">
+          <span class="menu-icon">📖</span>
+          <span class="menu-text"><span class="menu-title">全データ一覧（図鑑）</span><span class="menu-desc">クリア状況と特徴を確認</span></span>
+          <span class="menu-arrow">›</span>
+        </button>
       </div>
     </section>
 
     <!-- ② クイズ画面 -->
     <section id="quiz-screen" class="screen hidden">
-      <header class="quiz-header flex-between mb-8">
-        <button id="btn-quit-quiz" class="btn-icon">✕ 終了</button>
-        <div class="question-counter glass-badge">
-          第 <span id="current-q-num" class="text-accent font-bold">1</span> 問 / 全10問
+      <header class="quiz-header mb-4">
+        <div class="flex-between">
+          <button id="btn-quit-quiz" class="btn-icon btn-quit">✕ 終了</button>
+          <div class="question-counter glass-badge">
+            第 <span id="current-q-num" class="text-accent font-bold">1</span> 問 / 全10問
+          </div>
         </div>
+        <div class="quiz-progress mt-2"><div id="quiz-progress-fill" class="quiz-progress-fill" style="width: 0%;"></div></div>
       </header>
 
       <div class="quiz-content glass-panel mb-8">
@@ -343,6 +376,6 @@
   <script src="data/miyagi_offices.js?v=8"></script>
   <script src="js/progress.js"></script>
   <script src="js/quiz.js"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>

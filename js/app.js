@@ -16,7 +16,17 @@ class App {
 
     this.cacheDOM();
     this.bindEvents();
-    this.updateTitleProgress();
+
+    // 前回選択した県を復元（未保存なら福島県）
+    let savedPref = 'fukushima';
+    try {
+      savedPref = localStorage.getItem('selectedPrefecture') || 'fukushima';
+    } catch (e) { /* localStorage が使えない環境では既定値 */ }
+    if (savedPref === 'miyagi') {
+      this.setPrefecture('miyagi');
+    } else {
+      this.updateTitleProgress();
+    }
   }
 
   cacheDOM() {
@@ -55,13 +65,20 @@ class App {
   }
 
   bindEvents() {
-    // 県切り替え
-    const prefSelect = document.getElementById('prefecture-select');
-    if (prefSelect) {
-      prefSelect.addEventListener('change', (e) => {
-        this.setPrefecture(e.target.value);
+    // 県切り替え（セグメントボタン）
+    document.querySelectorAll('#prefecture-switch .segmented-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.pref !== this.currentPrefecture) {
+          this.setPrefecture(btn.dataset.pref);
+        }
       });
-    }
+    });
+
+    // Escキーで詳細モーダルを閉じる
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      document.getElementById('details-modal').classList.add('hidden');
+    });
 
     // タイトル画面ボタン
     document.getElementById('btn-start-feature').addEventListener('click', () => this.startQuiz('feature'));
@@ -132,6 +149,17 @@ class App {
 
   setPrefecture(pref) {
     this.currentPrefecture = pref;
+
+    // 選択状態を保存し、セグメントボタンの表示を更新
+    try {
+      localStorage.setItem('selectedPrefecture', pref);
+    } catch (e) { /* 保存できなくても動作は継続 */ }
+    document.querySelectorAll('#prefecture-switch .segmented-btn').forEach(btn => {
+      const isActive = btn.dataset.pref === pref;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
     if (pref === 'fukushima') {
       currentMapTracker = fukushimaMapTracker;
       currentFeatureTracker = fukushimaFeatureTracker;
@@ -226,6 +254,14 @@ class App {
     this.elProgressPercent.textContent = `${percent}%`;
     this.elProgressBarFill.style.width = `${percent}%`;
 
+    // 位置・特徴それぞれの内訳
+    const mapCount = this.municipalities.filter(c => currentMapTracker.isCleared(c.id)).length;
+    const featureCount = this.municipalities.filter(c => currentFeatureTracker.isCleared(c.id)).length;
+    const elMapCount = document.getElementById('map-progress-count');
+    const elFeatureCount = document.getElementById('feature-progress-count');
+    if (elMapCount) elMapCount.textContent = `${mapCount}/${total}`;
+    if (elFeatureCount) elFeatureCount.textContent = `${featureCount}/${total}`;
+
     // NTT
     const nttCount = currentNttTracker.getClearedCount();
     const nttTotal = currentNttTracker.totalCount;
@@ -266,6 +302,14 @@ class App {
     const q = this.quizEngine.getCurrentQuestion();
     
     this.elCurrentQNum.textContent = this.quizEngine.currentIndex + 1;
+
+    // 問題の進捗バーを更新（回答済みの割合）
+    const elQuizProgress = document.getElementById('quiz-progress-fill');
+    if (elQuizProgress) {
+      elQuizProgress.style.width = `${(this.quizEngine.currentIndex / this.quizEngine.getTotal()) * 100}%`;
+    }
+    // 問題が切り替わったら先頭へ戻す（スマホで下までスクロールした状態を解消）
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     
     // モードごとの表示切り替え
     const elQuestionText = document.getElementById('question-text');
@@ -335,7 +379,7 @@ class App {
         circle.setAttribute('r', '2.5');
         circle.setAttribute('class', 'ntt-dot');
         if (office.id === q.correct.id) {
-           circle.setAttribute('r', '5');
+           circle.setAttribute('r', '8'); // スマホでも見つけやすいよう大きめに
            circle.classList.add('ntt-target');
            // 光っている要素を最前面にするため少し遅れて追加
            setTimeout(() => svg.appendChild(circle), 10);
@@ -349,10 +393,12 @@ class App {
     this.elOptionsGrid.innerHTML = '';
     q.options.forEach(opt => {
       const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'option-btn';
       btn.dataset.id = opt.id;
-      const kanaHtml = opt.kana ? `<span style="font-size: 0.85rem; color: var(--text-secondary);">（${opt.kana}）</span>` : '';
-      btn.innerHTML = `${opt.name}${kanaHtml}`;
+      // ふりがなは2行目に小さく表示
+      const kanaHtml = opt.kana ? `<span class="option-kana">${opt.kana}</span>` : '';
+      btn.innerHTML = `<span>${opt.name}</span>${kanaHtml}`;
       btn.addEventListener('click', () => this.handleAnswerSubmit(opt.id, btn));
       this.elOptionsGrid.appendChild(btn);
     });
@@ -365,6 +411,12 @@ class App {
     btns.forEach(b => b.disabled = true);
 
     const { isCorrect, correctItem } = this.quizEngine.submitAnswer(selectedId);
+
+    // 回答した時点で進捗バーを進める
+    const elQuizProgress = document.getElementById('quiz-progress-fill');
+    if (elQuizProgress) {
+      elQuizProgress.style.width = `${((this.quizEngine.currentIndex + 1) / this.quizEngine.getTotal()) * 100}%`;
+    }
     
     // イベント送信: 回答結果
     this.sendGAEvent('quiz_answer', {
